@@ -1,0 +1,5 @@
+/* Minimal base styles for Tailwind preflight interop */
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+
