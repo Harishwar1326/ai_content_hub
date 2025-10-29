@@ -1,8 +1,9 @@
 // FIX: Providing the full implementation for the TaskList component.
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TaskList as TaskListType, ContentItem, User } from '../types';
 import { TaskItem } from './TaskItem';
 import { UsersIcon } from './IconComponents';
+import { CreateContentModal, ContentData } from './CreateContentModal';
 
 interface TaskListProps {
   list: TaskListType | undefined;
@@ -11,11 +12,26 @@ interface TaskListProps {
   onDeleteItem: (itemId: string) => void;
   onSelectItem: (item: ContentItem) => void;
   onAnalyzeHub: () => void;
+  onCreateItem?: (data: ContentData) => Promise<void>;
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ list, users, onUpdateItem, onDeleteItem, onSelectItem, onAnalyzeHub }) => {
+export const TaskList: React.FC<TaskListProps> = ({ list, users, onUpdateItem, onDeleteItem, onSelectItem, onAnalyzeHub, onCreateItem }) => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  useEffect(() => {
+    // When the list changes, reset the tag filter
+    setActiveTag(null);
+  }, [list]);
+
+  const handleSaveContent = async (data: ContentData) => {
+    if (onCreateItem) {
+      await onCreateItem(data);
+      setIsCreateModalOpen(false);
+    }
+  };
+
 
   const allTags = useMemo(() => {
     if (!list) return [];
@@ -42,15 +58,25 @@ export const TaskList: React.FC<TaskListProps> = ({ list, users, onUpdateItem, o
   }
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-bold text-white">{list.name}</h2>
-        {list.items.length > 0 && (
-          <button onClick={onAnalyzeHub} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors">
-            <UsersIcon className="w-5 h-5 mr-2" />
-            Analyze Hub
+    <div className="p-6 h-full flex flex-col min-w-0 max-w-[calc(100vw-16rem)]">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
+        <h2 className="text-3xl font-bold text-white truncate">{list.name}</h2>
+        <div className="flex items-center gap-3">
+          {list.items.length > 0 && (
+            <button onClick={onAnalyzeHub} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors">
+              <UsersIcon className="w-5 h-5 mr-2" />
+              Analyze Hub
+            </button>
+          )}
+
+          {/* Create new content modal - always visible when a list is selected */}
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
+          >
+            Create New Item
           </button>
-        )}
+        </div>
       </div>
       
       {allTags.length > 0 && (
@@ -103,6 +129,11 @@ export const TaskList: React.FC<TaskListProps> = ({ list, users, onUpdateItem, o
           </div>
         )}
       </div>
+      <CreateContentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSave={handleSaveContent}
+      />
     </div>
   );
 };

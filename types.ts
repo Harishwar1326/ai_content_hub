@@ -21,6 +21,7 @@ export interface ContentItem {
   createdBy: User['id'];
   dueDate?: string;
   tags?: string[];
+  folder: string;
 }
 
 export interface TaskList {

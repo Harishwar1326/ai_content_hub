@@ -14,36 +14,92 @@ import { ContentItem, Subtask } from './types';
 type View = 'tasks' | 'brainstorm';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // Set to true for testing
   const [isSmartAddOpen, setIsSmartAddOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isCollaborationReportOpen, setIsCollaborationReportOpen] = useState(false); // New state
+  const [isCollaborationReportOpen, setIsCollaborationReportOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [currentView, setCurrentView] = useState<View>('tasks');
+  
+  // Add this console.log to help debug
+  console.log('App rendering, isLoggedIn:', isLoggedIn);
 
   const {
     taskLists,
     activeList,
     activeListId,
-    users, // New from hook
-    currentUser, // New from hook
-    setCurrentUser, // New from hook
+    users,
+    currentUser,
+    setCurrentUser,
     selectList,
     addList,
     addItem,
     updateItem,
     deleteItem,
-    updateSubtask,
+    updateSubtask, // This was missing a comma
+    deleteList,
+    editList
   } = useTaskManager();
 
   const handleLogin = () => setIsLoggedIn(true);
   const handleLogout = () => setIsLoggedIn(false);
 
   const handleSmartAdd = useCallback((itemData: Partial<ContentItem>) => {
-    if (activeListId) {
-      addItem(activeListId, itemData);
+    (async () => {
+      // If itemData includes a folder, try to add to that folder (create if needed)
+      const folderName = (itemData as any).folder;
+      if (folderName && typeof folderName === 'string' && folderName.trim().length > 0) {
+        // Try to find existing list
+        const existing = taskLists.find(t => t.name === folderName.trim());
+        let targetId = existing ? existing.id : null;
+        if (!targetId) {
+          // create new list on server + locally
+          targetId = await addList(folderName.trim());
+        }
+        if (targetId) addItem(targetId, itemData);
+        return;
+      }
+
+      if (activeListId) {
+        addItem(activeListId, itemData);
+      }
+    })();
+  }, [addItem, activeListId, taskLists, addList]);
+
+  const handleCreateItem = useCallback(async (data: any) => {
+    // data contains title, content (description), type, folder, subtasks
+    const folderName = data.folder;
+    if (folderName && typeof folderName === 'string' && folderName.trim().length > 0) {
+      const existing = taskLists.find(t => t.name === folderName.trim());
+      let targetId = existing ? existing.id : null;
+      if (!targetId) {
+        targetId = await addList(folderName.trim());
+      }
+      if (targetId) {
+        await addItem(targetId, {
+          title: data.title,
+          description: data.content || data.description || '',
+          type: (data.type || 'note').toLowerCase(),
+          subtasks: data.subtasks || [],
+          tags: data.tags || [],
+          dueDate: data.dueDate,
+          folder: folderName,
+        });
+      }
+      return;
     }
-  }, [addItem, activeListId]);
+
+    if (activeListId) {
+      await addItem(activeListId, {
+        title: data.title,
+        description: data.content || data.description || '',
+        type: (data.type || 'note').toLowerCase(),
+        subtasks: data.subtasks || [],
+        tags: data.tags || [],
+        dueDate: data.dueDate,
+      });
+    }
+  }, [taskLists, addList, addItem, activeListId]);
 
   const handleUpdateItem = useCallback((updates: Partial<ContentItem>) => {
     if (activeListId && selectedItem) {
@@ -96,14 +152,16 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white font-sans">
+    <div className="flex h-screen bg-gray-900 text-white font-sans overflow-hidden">
       <Sidebar
         taskLists={taskLists}
         activeListId={activeListId}
         onSelectList={selectList}
         onAddList={addList}
+        onEditList={editList}
+        onDeleteList={deleteList}
       />
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 min-w-0">
         <Header 
             onLogout={handleLogout} 
             onSmartAdd={() => setIsSmartAddOpen(true)}
@@ -129,14 +187,15 @@ function App() {
                 </nav>
             </div>
           {currentView === 'tasks' ? (
-             <TaskList
-                list={activeList}
-                users={users}
-                onUpdateItem={(itemId, updates) => updateItem(activeListId!, itemId, updates)}
-                onDeleteItem={handleDeleteItem}
-                onSelectItem={handleSelectItem}
-                onAnalyzeHub={() => setIsCollaborationReportOpen(true)}
-             />
+         <TaskList
+           list={activeList}
+           users={users}
+           onCreateItem={handleCreateItem}
+           onUpdateItem={(itemId, updates) => updateItem(activeListId!, itemId, updates)}
+           onDeleteItem={handleDeleteItem}
+           onSelectItem={handleSelectItem}
+           onAnalyzeHub={() => setIsCollaborationReportOpen(true)}
+         />
           ) : (
             <div className="p-6">
                 <BrainstormView onAddIdeaAsNote={handleAddIdeaAsNote} />
