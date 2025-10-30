@@ -23,41 +23,7 @@ This application is packed with features designed to enhance productivity and cr
 
 *   **🎨 Sleek & Responsive UI:** A beautiful dark-mode interface built with Tailwind CSS that's intuitive, fast, and works great on all screen sizes
 
-This project is a full-stack application with a modern tech stack:
 
-Frontend: A dynamic and responsive UI built with React and TypeScript, styled using Tailwind CSS.
-Backend: A REST API powered by Node.js and Express.js, which connects to a MongoDB database for data persistence.
-AI Integration: Leverages the Google Gemini API via the @google/genai SDK for all intelligent features like content generation, task parsing, and analysis.
-The codebase also includes basic scaffolding for an alternative Angular client.
-=======
-1. Install dependencies:
-   ```bash
-   npm install
-   cd backend
-   npm install
-   cd ..
-   ```
-
-2. Set up your Gemini API key:
-   - Create a `.env.local` file in the root directory
-   - Add your API key:
-     ```
-     VITE_GEMINI_API_KEY=your_gemini_api_key_here
-     ```
-   - Get your API key from: https://aistudio.google.com/app/apikey
-
-3. Run the app:
-   ```bash
-   npm run dev:all
-   ```
-   This will start both the frontend (port 5173) and backend (port 5000).
-
-   Alternatively, run them separately:
-   ```bash
-   # Terminal 1 - Backend
-   npm run start:backend
-   
-   # Terminal 2 - Frontend
    npm run dev
    ```
 >>>>>>> de00583 (Updated files with latest changes)
